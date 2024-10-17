@@ -33,7 +33,9 @@ function App() {
   }, []);
 
   const initWebSocket = () => {
-    wsAudio.current = new WebSocket('ws://localhost:9000/api/chatbot/audio/ws/s2s-generate');
+    if (!wsAudio.current) {
+      wsAudio.current = new WebSocket('ws://localhost:9000/api/chatbot/webinar/ws/stream_webinar');
+    }
 
     if (wsAudio.current) {
       wsAudio.current.onopen = () => {
@@ -42,21 +44,21 @@ function App() {
 
       wsAudio.current.onmessage = (event: MessageEvent) => {
         const blob = event.data as Blob;
-        console.log(`blob type: ${blob.type}`); // Esto debería imprimir "audio/mpeg" o "audio/mp3"
+        console.log(`blob type: ${blob.type}`);
 
         const reader = new FileReader();
         console.log(`Chunk recibido: ${event.data.size} bytes`);
 
         reader.onloadend = () => {
           const arrayBuffer = reader.result as ArrayBuffer;
-          bufferQueue.current.push(arrayBuffer); // Añadir a la cola
+          bufferQueue.current.push(arrayBuffer);
           console.log(`Queue length: ${bufferQueue.current.length}`)
-          processQueue(); // Procesar cola inmediatamente
+          processQueue();
 
           const audio = audioRef.current;
           if (audio) {
-            audio.currentTime = 0; // Reiniciar el tiempo de reproducción
-            audio.play(); // Reproducir desde el principio
+            audio.currentTime = 0;
+            audio.play();
           }
         };
 
@@ -106,9 +108,9 @@ function App() {
 
       recorder.ondataavailable = (event: BlobEvent) => {
         console.log(`Chunk enviado: ${event.data.size} bytes`);
-        if (wsAudio.current && event.data.size > 0) {
-          wsAudio.current.send(event.data); // Enviar el audio grabado al backend
-        }
+        // if (wsAudio.current && event.data.size > 0) {
+        //   wsAudio.current.send(event.data); // Enviar el audio grabado al backend
+        // }
       };
 
       recorder.start();
@@ -134,6 +136,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Grabadora y Reproductor de Audio en Tiempo Real</h1>
+        <audio ref={audioRef} style={{ display: 'none' }} controls autoPlay />
         <div>
           <button onClick={startRecording} className="btn-record">
             <FontAwesomeIcon icon={faMicrophone} />
@@ -142,7 +145,6 @@ function App() {
             <FontAwesomeIcon icon={faPaperPlane} />
           </button>
         </div>
-        <audio ref={audioRef} controls autoPlay />
       </header>
     </div>
   );
